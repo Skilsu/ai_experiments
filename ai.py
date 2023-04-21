@@ -28,7 +28,7 @@ def reshape_secured(input_vector, closed_position):
     if len(input_vector) is not len(closed_position):
         logging.log(logging.ERROR, "Wrong input")
     for idx, closed in enumerate(closed_position):
-        if closed is not 0:
+        if closed != 0:
             input_vector[idx] = - math.inf
     output_vector[input_vector.index(max(input_vector))] = 1
     return output_vector
@@ -134,6 +134,7 @@ class Layer:
         return output
 
     def recreate(self,
+                 neuron_learn_probability=0.25,
                  neuron_learn_rate=0.05,
                  neuron_learn_rate_possibility=0.1,
                  neuron_change_learn_rate=True,
@@ -147,10 +148,11 @@ class Layer:
 
         if change_neurons:
             for idx, _ in enumerate(self.neurons):
-                self.neurons[idx].recreate(learn_rate=neuron_learn_rate,
-                                           learn_rate_possibility=neuron_learn_rate_possibility,
-                                           change_learn_rate=neuron_change_learn_rate,
-                                           change_learn_rate_possibility=neuron_change_learn_rate_possibility)
+                if random.uniform(0, 1) <= neuron_learn_probability:
+                    self.neurons[idx].recreate(learn_rate=neuron_learn_rate,
+                                               learn_rate_possibility=neuron_learn_rate_possibility,
+                                               change_learn_rate=neuron_change_learn_rate,
+                                               change_learn_rate_possibility=neuron_change_learn_rate_possibility)
 
         if del_neurons is not None:  # TODO extract as method
             for position in del_neurons:
@@ -169,7 +171,7 @@ class Layer:
                     self.neurons[idx].insert_weight(position)
 
     def reshape_neurons(self, number_of_pre_neurons):
-        for idx, _ in self.neurons:
+        for idx, _ in enumerate(self.neurons):
             self.neurons[idx].reshape(number_of_pre_neurons)
 
     def return_json(self):
@@ -224,6 +226,7 @@ class Net:
                  change_layers=True,
                  add_layer=None,  # [] number of new neurons per new layer -> len(add_layer) == amount of new layers
                  del_layer=0,
+                 neuron_learn_probability=0.25,
                  neuron_learn_rate=0.05,
                  neuron_learn_rate_possibility=0.01,
                  neuron_change_learn_rate=True,
@@ -236,14 +239,32 @@ class Net:
         if change_layers:
             if del_neurons is None:
                 del_neurons = [None for _ in self.layers]
+            elif len(del_neurons) != len(self.layers):
+                logging.log(logging.ERROR, "del_neurons input is invalid!")
+                raise ValueError(f"Expected a list of length {len(self.layers)=}"
+                                 f", but got a list of length {len(del_neurons)}.")
+            else:
+                for idx, neuron_number in enumerate(del_neurons):
+                    if neuron_number is not None:
+                        self.connector_layout[idx + 1] -= len(neuron_number)
+
             if add_neurons is None:
                 add_neurons = [None for _ in self.layers]
+            elif len(add_neurons) != len(self.layers):
+                logging.log(logging.ERROR, "add_neurons input is invalid!")
+                raise ValueError(f"Expected a list of length {len(self.layers)=}"
+                                 f", but got a list of length {len(add_neurons)}.")
+            else:
+                for idx, neuron_number in enumerate(add_neurons):
+                    if neuron_number is not None:
+                        self.connector_layout[idx + 1] += len(neuron_number)
 
             del_neurons.insert(0, None)
             add_neurons.insert(0, None)
 
             for idx, _ in enumerate(self.layers):
-                self.layers[idx].recreate(neuron_learn_rate=neuron_learn_rate,
+                self.layers[idx].recreate(neuron_learn_probability=neuron_learn_probability,
+                                          neuron_learn_rate=neuron_learn_rate,
                                           neuron_learn_rate_possibility=neuron_learn_rate_possibility,
                                           neuron_change_learn_rate=neuron_change_learn_rate,
                                           neuron_change_learn_rate_possibility=neuron_change_learn_rate_possibility,
@@ -253,22 +274,24 @@ class Net:
                                           prev_del_neurons=del_neurons[idx],
                                           prev_add_neurons=add_neurons[idx])
 
-        if add_layer > 0:
+        if add_layer is not None:  # TODO should also get positions
             for neurons in add_layer:
-                self.add_layer(random.randint(0, len(self.layers) - 1), neurons)
+                self.add_layer(random.randint(0, len(self.layers) - 1), neurons)  # should only change the hidden layers
 
-        elif del_layer > 0:
+        elif del_layer > 0:  # TODO Needs to be changed to [positions]
             for _ in range(del_layer):
-                self.del_layer(random.randint(0, len(self.layers) - 1))
+                self.del_layer(random.randint(0, len(self.layers) - 2))  # should only change the hidden layers
 
     def add_layer(self, position, number_of_neurons):
         self.layers.insert(position, Layer(number_of_pre_neurons=self.layers[position].number_of_pre_neurons,
                                            number_of_neurons=number_of_neurons))
         self.layers[position + 1].reshape_neurons(number_of_pre_neurons=number_of_neurons)
+        self.connector_layout.insert(position + 1, number_of_neurons)
 
     def del_layer(self, position):
         number_of_pre_neurons = self.layers[position].number_of_pre_neurons
         del self.layers[position]
+        del self.connector_layout[position + 1]
         self.layers[position].reshape_neurons(number_of_pre_neurons=number_of_pre_neurons)
 
     def return_json(self):
