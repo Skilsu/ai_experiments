@@ -4,9 +4,6 @@ import random
 
 
 class TicTacToeBoard:
-    """
-    Author: guckert
-    """
 
     def __init__(self, *args):
         if len(args) == 0:
