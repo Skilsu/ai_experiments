@@ -90,7 +90,6 @@ def game(player1, player2, log=False):
         player2.lost()
 
 
-
 def learning():
     player = [Player()]
     player.clear()
@@ -104,6 +103,8 @@ def learning():
     player.extend(PlayerAi(9, [9, 9]) for _ in range(10))
     player.extend(PlayerRandom() for _ in range(20))
     print("Top Ten of the Players:")
+    player[0].net.print_net()
+    print(player[0].net.connector_layout)
     while True:
         for player1 in player:
             for player2 in player:
