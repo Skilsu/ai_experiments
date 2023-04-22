@@ -1,75 +1,11 @@
-import json
-import logging
-import random
 from ai import Net
+from player import Player, PlayerRandom, PlayerAi
 from tic_tac_toe import TicTacToeBoard
-
-
-class Player:
-    names = []
-
-    def __init__(self):
-        self.win = 0
-        self.name = None
-        if not self.names:
-            self.name = "Player 1"
-        else:
-            name = self.names[len(self.names) - 1]
-            number = int(name[7:])
-            self.name = "Player " + str(number + 1)
-
-        self.names.append(self.name)
-
-    def play(self, board, p1=True):
-        pass
-
-    def won(self):
-        self.win += 1
-
-    def lost(self):
-        self.win -= 1
-
-
-class PlayerAi(Player):
-    def __init__(self, input_layout, layout):
-        super().__init__()
-        self.net = Net(input_layout, layout)
-
-    def play(self, input_vector, p1=True):
-        output_vector = self.net.forward(input_vector=input_vector)
-
-        if not p1:
-            for idx, _ in enumerate(output_vector):
-                if output_vector[idx] == 1:
-                    output_vector[idx] = -1
-
-        for idx, _ in enumerate(output_vector):
-            if input_vector[idx] != 0:
-                output_vector[idx] = input_vector[idx]
-        return output_vector
-
-
-class PlayerRandom(Player):
-    def __init__(self):
-        super().__init__()
-
-    def play(self, board, p1=True):
-        empty_position = []
-        for idx, i in enumerate(board):
-            if i == 0:
-                empty_position.append(idx)
-        if p1:
-            res = 1
-        else:
-            res = -1
-        board[empty_position[random.randint(0, len(empty_position) - 1)]] = res
-        return board
 
 
 def game(player1, player2, log=False):
     current_game = TicTacToeBoard()
     turn = True
-    res = 0
     while not current_game.isWinningBoard:
         if turn:
             current_game.set_board(player1.play(current_game.get_list()))
@@ -103,32 +39,60 @@ def learning():
     player.extend(PlayerAi(9, [9, 9]) for _ in range(10))
     player.extend(PlayerRandom() for _ in range(20))
     print("Top Ten of the Players:")
-    player[0].net.print_net()
-    print(player[0].net.connector_layout)
     while True:
         for player1 in player:
             for player2 in player:
                 game(player1, player2)
         sorted_players = sorted(player, key=lambda x: x.win, reverse=True)
+        sorted_players[0].first += 1
+        sorted_players[1].second += 1
+        sorted_players[2].third += 1
+        for idx, i in enumerate(sorted_players[:5]):
+            sorted_players[idx].top_five += 1
         for idx, i in enumerate(sorted_players[:10]):
-            print(idx, i.name)
+            sorted_players[idx].top_ten += 1
+        for idx, i in enumerate(sorted_players[:20]):
+            sorted_players[idx].top_twenty += 1
+        for idx, i in enumerate(sorted_players):
+            print(idx, i.name, i.win, i.parent)
+        print(f"Newest Player: {player[len(player) - 1].name}")
         print("Press any key to continue...")
         input()
         print("Continuing...")
-        player = sorted_players[:10]
+        player = sorted_players[:25]
         for idx, _ in enumerate(player):
             player[idx].win = 0
-        player.extend([PlayerAi(9, [9, 12, 9, 9]) for _ in range(9)])
-        player.extend(PlayerAi(9, [9, 12, 12, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [9, 9, 9, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [9, 12, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [9, 6, 6, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [6, 12, 6, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [6, 6, 9]) for _ in range(9))
-        player.extend(PlayerAi(9, [9, 9]) for _ in range(9))
-        player.extend(PlayerRandom() for _ in range(18))
+        player.extend([PlayerAi(9, [9, 12, 9, 9]) for _ in range(5)])
+        player.extend(PlayerAi(9, [9, 12, 12, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [9, 9, 9, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [9, 12, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [9, 6, 6, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [6, 12, 6, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [6, 6, 9]) for _ in range(5))
+        player.extend(PlayerAi(9, [9, 9]) for _ in range(5))
+        player.extend(player[0].recreate() for _ in range(10))
+        player.extend(player[1].recreate() for _ in range(9))
+        player.extend(player[2].recreate() for _ in range(8))
+        player.extend(player[3].recreate() for _ in range(7))
+        player.extend(player[4].recreate() for _ in range(6))
+        player.extend(player[5].recreate() for _ in range(5))
+        player.extend(player[6].recreate() for _ in range(4))
+        player.extend(player[7].recreate() for _ in range(3))
+        player.extend(player[8].recreate() for _ in range(2))
+        player.extend(player[9].recreate() for _ in range(1))
         print(f"There are now {len(player)}")
         print(f"Current top Ten:")
+
+
+def test_reshape():
+    n = Net(3, [3, 4, 5, 6, 7])
+    n.recreate(change_layers=True,
+               neuron_learn_rate=0.5,
+               change_neurons=True,
+               del_neurons=None,
+               add_neurons=[[1, 2, 4], [], [], [], []])
+    print(n.connector_layout)
+    # n.print_net()
 
 
 def main():
