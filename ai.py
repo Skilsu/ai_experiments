@@ -215,12 +215,12 @@ class Net:
                 else:
                     self.layers.append(Layer(layout[idx], layout[idx + 1]))
 
-    def forward(self, input_vector):
-        previous_board = input_vector
+    def forward(self, input_vector, closed_positions):
+        output_vector = input_vector
         for layer in self.layers:
-            input_vector = layer.forward(input_vector)
-        input_vector = reshape_secured(input_vector, previous_board)
-        return input_vector
+            output_vector = layer.forward(output_vector)
+        output_vector = reshape_secured(output_vector, closed_positions)
+        return output_vector
 
     def recreate(self,
                  change_layers=True,

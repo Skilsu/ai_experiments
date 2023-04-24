@@ -1,38 +1,16 @@
 import copy
 import logging
-import random
+from boards import Board
 
 
-class TicTacToeBoard:
+class TicTacToeBoard(Board):
 
     def __init__(self, *args):
+        super().__init__(*args)
         if len(args) == 0:
             self.board = [['_', '_', '_'], ['_', '_', '_'], ['_', '_', '_']]
         else:
             self.board = args[0]
-        self.isWinningBoard = False
-        self.isWinningBoardValue = 0
-        self.symbol = ' '
-        self.symmetry_id = -1
-        self.minimax = 0
-        self.alpha = 0
-        self.beta = 0
-
-    def print_board(self):
-        for i in self.board:
-            print(i)
-
-    def expand(self, symbol):
-        self.symbol = symbol
-        nextmoves = []
-        if not self.is_winning():
-            for i in range(len(self.board)):
-                for j in range(len(self.board[i])):
-                    if self.board[i][j] == "_":
-                        newboard = copy.deepcopy(self.board)
-                        newboard[i][j] = symbol
-                        nextmoves.append(TicTacToeBoard(newboard))
-        return nextmoves
 
     def is_winning(self):
         b = self.board
@@ -65,19 +43,6 @@ class TicTacToeBoard:
         if res:
             self.isWinningBoard = True
         return res
-
-    def get_list(self):
-        board = []
-        for i in self.board:
-            board.extend(i)
-        for idx, pos in enumerate(board):
-            if pos == "_":
-                board[idx] = 0
-            elif pos == "X":
-                board[idx] = 1
-            elif pos == "O":
-                board[idx] = -1
-        return board
 
     def set_board(self, value_list):
         for idx, _ in enumerate(self.board):
