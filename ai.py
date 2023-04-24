@@ -2,7 +2,10 @@ import logging
 import math
 import random
 
+# from numba import jit
 
+
+# @jit
 def rlu_activation(input_nr):
     if input_nr > 0:
         return input_nr
@@ -10,6 +13,7 @@ def rlu_activation(input_nr):
         return 0
 
 
+# @jit
 def rlu_activation_back(input_nr):
     if input_nr > 0:
         return 1
@@ -23,6 +27,7 @@ def reshape(input_vector):
     return output_vector
 
 
+# @jit
 def reshape_secured(input_vector, closed_position):
     output_vector = [0 for _ in range(len(input_vector))]
     if len(input_vector) is not len(closed_position):
@@ -44,6 +49,7 @@ class Neuron:
         self.last_output = None
         self.learn_rate_possibility = None
 
+    # @jit
     def forward(self, input_vector):
         self.last_input = [1]
         for i in input_vector:
@@ -127,6 +133,7 @@ class Layer:
             self.neurons.append(Neuron(number_of_pre_neurons))
             number_of_neurons -= 1
 
+    # @jit
     def forward(self, input_vector):
         output = []
         for neuron in self.neurons:
@@ -215,6 +222,7 @@ class Net:
                 else:
                     self.layers.append(Layer(layout[idx], layout[idx + 1]))
 
+    # @jit
     def forward(self, input_vector, closed_positions):
         output_vector = input_vector
         for layer in self.layers:

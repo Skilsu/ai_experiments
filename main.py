@@ -138,7 +138,7 @@ def connect_four_learning():
     player.extend(PlayerAiConnectFour([10, 10]) for _ in range(10))
     player.extend(PlayerRandomConnectFour() for _ in range(20))
     trainer = [PlayerTrainerConnectFour(repeat_random=True) for _ in range(10)]
-    # trainer.extend([PlayerTrainerConnectFour(fill_columns=True) for _ in range(10)])
+    trainer.extend([PlayerTrainerConnectFour(fill_columns=True) for _ in range(10)])
     while True:
         for player1 in player:
             print(f"Playing {player1.name}")
@@ -208,7 +208,7 @@ def test_reshape():
 
 
 def main():
-    # connect_four_game(PlayerTrainerConnectFour(repeat_random=True), PlayerTrainerConnectFour(fill_columns=True), True)
+    # connect_four_game(PlayerTrainerConnectFour(fill_columns=True), PlayerTrainerConnectFour(repeat_random=True), True)
     connect_four_learning()
 
 

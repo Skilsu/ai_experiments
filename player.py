@@ -101,10 +101,9 @@ class PlayerAiConnectFour(Player):
     def play(self, input_vector, p1=True):
         closed_positions = input_vector[:7]
         output_vector = self.net.forward(input_vector=input_vector, closed_positions=closed_positions)
+
         if not p1:
-            for idx, _ in enumerate(output_vector):
-                if output_vector[idx] == 1:
-                    output_vector[idx] = -1
+            output_vector[output_vector.index(1)] = -1
 
         return output_vector
 
@@ -189,7 +188,6 @@ class PlayerTrainerConnectFour(Player):
 
     def play(self, input_board, p1=True):
         self.board = self.rearranged_board(input_board)
-        print(self.board)
         empty_position = []
         for idx, i in enumerate(input_board[:7]):
             if i == 0:
@@ -203,6 +201,7 @@ class PlayerTrainerConnectFour(Player):
         if self.repeat_random:
             if self.last_move == -1:
                 self.last_move = empty_position[random.randint(0, len(empty_position) - 1)]
+                board[self.last_move] = res
             else:
                 if self.last_move not in empty_position:
                     self.last_move = empty_position[random.randint(0, len(empty_position) - 1)]
@@ -210,17 +209,18 @@ class PlayerTrainerConnectFour(Player):
         elif self.fill_columns:
             if self.last_move == -1:
                 self.last_move = empty_position[random.randint(0, len(empty_position) - 1)]
+                board[self.last_move] = res
             else:
                 for idx, i in enumerate(self.board):
                     if i[self.last_move] == -res:
-                        empty_position.remove(self.last_move)
+                        if self.last_move in empty_position:
+                            empty_position.remove(self.last_move)
                         self.last_move = empty_position[random.randint(0, len(empty_position) - 1)]
                         board[self.last_move] = res
                         break
-                    elif i[self.last_move] == res:
-                        if idx > 2:
-                            board[self.last_move] = res
-                            break
+                    elif idx > 2:
+                        board[self.last_move] = res
+                        break
         elif self.fill_horizontal:
             pass
         return board
