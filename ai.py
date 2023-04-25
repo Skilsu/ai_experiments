@@ -30,7 +30,7 @@ def reshape(input_vector):
 # @jit
 def reshape_secured(input_vector, closed_position):
     output_vector = [0 for _ in range(len(input_vector))]
-    if len(input_vector) is not len(closed_position):
+    if len(input_vector) != len(closed_position):
         logging.log(logging.ERROR, "Wrong input")
     for idx, closed in enumerate(closed_position):
         if closed != 0:
@@ -55,7 +55,7 @@ class Neuron:
         for i in input_vector:
             self.last_input.append(i)
 
-        self.last_output = 0
+        self.last_output = 0.0
         self.last_output = self.w[0] * self.last_input[0]
         for idx, i in enumerate(input_vector):
             self.last_output += i * self.w[idx + 1]
