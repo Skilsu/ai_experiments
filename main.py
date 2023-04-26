@@ -198,19 +198,23 @@ def connect_four_learning():
 
 
 def test_reshape():
-    n = Net(3, [3, 4, 5, 6, 7])
-    n.recreate(change_layers=True,
+    player1 = PlayerAiConnectFour([42, 20, 20, 15])
+    player2 = PlayerAiConnectFour([42, 20, 20, 15])
+    connect_four_game(player1=player1,player2=player2)
+    player1.net.recreate(change_layers=True,
                neuron_learn_rate=0.5,
+               add_layer=[10],
                change_neurons=True,
                del_neurons=None,
-               add_neurons=[[1, 2, 4], [], [], [], []])
-    print(n.connector_layout)
-    # n.print_net()
+               add_neurons=[[1, 2, 4], [], [], []])
+    print(player1.net.connector_layout)
+    connect_four_game(player1=player1,player2=player2)
+    # player1.net.print_net()
 
 
 def main():
     # connect_four_game(PlayerTrainerConnectFour(fill_columns=True), PlayerTrainerConnectFour(repeat_random=True), True)
-    connect_four_learning()
+    test_reshape()
 
 
 if __name__ == '__main__':

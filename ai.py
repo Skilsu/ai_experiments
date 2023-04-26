@@ -217,10 +217,7 @@ class Net:
             self.connector_layout.extend(i for i in layout)
             self.layers.append(Layer(input_layout, layout[0]))
             for idx, i in enumerate(layout[:-1]):
-                if idx == 0:
-                    self.layers.append(Layer(input_layout, layout[idx + 1]))
-                else:
-                    self.layers.append(Layer(layout[idx], layout[idx + 1]))
+                self.layers.append(Layer(layout[idx], layout[idx + 1]))
 
     # @jit
     def forward(self, input_vector, closed_positions):
@@ -258,7 +255,7 @@ class Net:
 
             if add_neurons is None:
                 add_neurons = [None for _ in self.layers]
-            elif len(add_neurons) != len(self.layers):
+            elif len(add_neurons) != len(self.layers) - 1:  # Bc. last layer shouldnt be changed bc outputlayer
                 logging.log(logging.ERROR, "add_neurons input is invalid!")
                 raise ValueError(f"Expected a list of length {len(self.layers)=}"
                                  f", but got a list of length {len(add_neurons)}.")
@@ -266,11 +263,13 @@ class Net:
                 for idx, neuron_number in enumerate(add_neurons):
                     if neuron_number is not None:
                         self.connector_layout[idx + 1] += len(neuron_number)
+                        if len(self.layers) - 1 > idx:
+                            self.layers[idx + 1].number_of_pre_neurons += len(neuron_number)
 
             del_neurons.insert(0, None)
             add_neurons.insert(0, None)
 
-            for idx, _ in enumerate(self.layers):
+            for idx, _ in enumerate(self.layers[:-1]):
                 self.layers[idx].recreate(neuron_learn_probability=neuron_learn_probability,
                                           neuron_learn_rate=neuron_learn_rate,
                                           neuron_learn_rate_possibility=neuron_learn_rate_possibility,
@@ -291,6 +290,11 @@ class Net:
                 self.del_layer(random.randint(0, len(self.layers) - 2))  # should only change the hidden layers
 
     def add_layer(self, position, number_of_neurons):
+        print("Start")
+        for layer in self.layers:
+            
+            print(layer.number_of_pre_neurons)
+        print("end")
         self.layers.insert(position, Layer(number_of_pre_neurons=self.layers[position].number_of_pre_neurons,
                                            number_of_neurons=number_of_neurons))
         self.layers[position + 1].reshape_neurons(number_of_pre_neurons=number_of_neurons)
