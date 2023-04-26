@@ -1,9 +1,6 @@
 import copy
 import random
 
-import numpy as np
-from numba import float32
-
 from ai import Net
 
 
