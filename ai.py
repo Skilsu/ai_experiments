@@ -45,23 +45,31 @@ class Neuron:
         self.pre_neurons = pre_neurons
         self.w = [random.uniform(-1, 1) for _ in range(self.pre_neurons + 1)]
         self.learn_rate = None
-        self.last_input = None
-        self.last_output = None
         self.learn_rate_possibility = None
+        self.last_input = None
+        self.last_output = 0.0
+        self.cummulated_output = 0
 
     # @jit
     def forward(self, input_vector):
+        if len(input_vector) != self.pre_neurons:
+            raise ValueError(f"Expected a input_vector of length {self.pre_neurons=}"
+                                 f", but got a list of length {len(input_vector)=}.\n"
+                                 f"{len(self.w)=}\n{len(input_vector)=}\n{self.pre_neurons=}")
         self.last_input = [1]
         for i in input_vector:
             self.last_input.append(i)
-
-        self.last_output = 0.0
-        self.last_output = self.w[0] * self.last_input[0]
-        for idx, i in enumerate(input_vector):
-            self.last_output += i * self.w[idx + 1]
-        self.last_output = self.last_output / (len(self.w) + 1)
-
-        return rlu_activation(self.last_output)
+            
+        for idx, i in enumerate(self.last_input):
+            try:
+                self.last_output += i * self.w[idx]  # TODO still error from time to time (list index out of range)
+            except IndexError as e:
+                print(f"{len(self.w)=}\n{self.w=}\n{idx=}\n{i=}\n{len(input_vector)=}\n{input_vector=}\n{self.pre_neurons=}")
+                raise e
+        self.last_output = self.last_output / (len(self.w))
+        output = rlu_activation(self.last_output)
+        self.cummulated_output += output
+        return output
 
     def recreate(self,
                  learn_rate,
@@ -83,6 +91,7 @@ class Neuron:
             while number_of_pre_neurons < self.pre_neurons:
                 del self.w[random.randint(0, len(self.w) - 1)]
                 self.pre_neurons -= 1
+                
         elif number_of_pre_neurons > self.pre_neurons:
             while number_of_pre_neurons > self.pre_neurons:
                 self.w.append(random.uniform(-1, 1))
@@ -100,7 +109,8 @@ class Neuron:
                 "learn_rate": self.learn_rate,
                 "last_input": self.last_input,
                 "last_output": self.last_output,
-                "learn_rate_possibility": self.learn_rate_possibility
+                "learn_rate_possibility": self.learn_rate_possibility,
+                "cummulated_output": self.cummulated_output
                 }
 
     def read_json(self, neuron_dict):
@@ -110,6 +120,7 @@ class Neuron:
         self.last_input = neuron_dict["last_input"]
         self.last_output = neuron_dict["last_output"]
         self.learn_rate_possibility = neuron_dict["learn_rate_possibility"]
+        self.cummulated_output = neuron_dict["cummulated_output"]
 
     """
     def backwards(self, results):
@@ -180,6 +191,7 @@ class Layer:
     def reshape_neurons(self, number_of_pre_neurons):
         for idx, _ in enumerate(self.neurons):
             self.neurons[idx].reshape(number_of_pre_neurons)
+        self.number_of_pre_neurons = number_of_pre_neurons
 
     def return_json(self):
         neurons = []
@@ -268,7 +280,7 @@ class Net:
 
             del_neurons.insert(0, None)
             add_neurons.insert(0, None)
-
+            
             for idx, _ in enumerate(self.layers[:-1]):
                 self.layers[idx].recreate(neuron_learn_probability=neuron_learn_probability,
                                           neuron_learn_rate=neuron_learn_rate,
@@ -281,23 +293,19 @@ class Net:
                                           prev_del_neurons=del_neurons[idx],
                                           prev_add_neurons=add_neurons[idx])
 
-        if add_layer is not None:  # TODO should also get positions
+        if add_layer is not None:
             for neurons in add_layer:
                 self.add_layer(random.randint(0, len(self.layers) - 1), neurons)  # should only change the hidden layers
-
-        elif del_layer > 0:  # TODO Needs to be changed to [positions]
+        
+        elif del_layer > 0:
             for _ in range(del_layer):
                 self.del_layer(random.randint(0, len(self.layers) - 2))  # should only change the hidden layers
 
     def add_layer(self, position, number_of_neurons):
-        print("Start")
-        for layer in self.layers:
-            
-            print(layer.number_of_pre_neurons)
-        print("end")
-        self.layers.insert(position, Layer(number_of_pre_neurons=self.layers[position].number_of_pre_neurons,
+        number_of_pre_neurons = self.layers[position].number_of_pre_neurons
+        self.layers[position].reshape_neurons(number_of_pre_neurons=number_of_neurons)
+        self.layers.insert(position, Layer(number_of_pre_neurons=number_of_pre_neurons,
                                            number_of_neurons=number_of_neurons))
-        self.layers[position + 1].reshape_neurons(number_of_pre_neurons=number_of_neurons)
         self.connector_layout.insert(position + 1, number_of_neurons)
 
     def del_layer(self, position):

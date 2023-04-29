@@ -21,6 +21,19 @@ def read_players(filename):
     #  TODO operate with player_json
 
 
+def compare_player(player1, player2):
+    errors = []
+    for idx, i in enumerate(player1.net.layers):
+        for jdx, j in enumerate(i.neurons):
+            for kdx, k in enumerate(j.w):
+                if k != player2.net.layers[idx].neurons[jdx].w[kdx]:
+                    errors.append(f"Issue at Layer {idx}, Neuron {jdx}, weight {kdx}")
+    for error in errors:
+        print(error)
+    if errors == []:
+        print("No errors!")
+ 
+ 
 def tic_tac_toe_game(player1, player2, log=False):
     current_game = TicTacToeBoard()
     turn = True
@@ -66,6 +79,14 @@ def connect_four_game(player1, player2, log=False):
         player1.won()
         player2.lost()
 
+
+def save_players(filename, player_dict):
+    with open(f"{filename}.json", "w") as outfile:
+        json.dump(player_dict, outfile)
+
+def read_players(filename):
+    with open(f"{filename}.json", "r") as infile:
+        return json.load(infile)
 
 def tic_tac_toe_learning():
     player = [Player()]
@@ -125,10 +146,21 @@ def tic_tac_toe_learning():
         print(f"Current top Ten:")
 
 
-def connect_four_learning():
+def connect_four_learning(read_file=None, save_file=None):
     player = [Player()]
     player[0].names.clear()
     player.clear()
+    
+    if read_file is not None:
+        content = read_players(read_file)
+        player_dicts = content["content"]
+        for player_dict in player_dicts:
+            new_player = PlayerAiConnectFour([0])
+            new_player.read_json(player_dict)
+            player.append(new_player)
+        for p in player:
+            player[0].names.append(p.name)
+            
     player.extend([PlayerAiConnectFour([42, 20, 20, 15]) for _ in range(10)])
     player.extend(PlayerAiConnectFour([30, 20, 30, 10]) for _ in range(10))
     player.extend(PlayerAiConnectFour([25, 25, 25]) for _ in range(10))
@@ -140,15 +172,19 @@ def connect_four_learning():
     player.extend(PlayerRandomConnectFour() for _ in range(20))
     trainer = [PlayerTrainerConnectFour(repeat_random=True) for _ in range(10)]
     trainer.extend([PlayerTrainerConnectFour(fill_columns=True) for _ in range(10)])
+    trainer.extend([PlayerTrainerConnectFour(react_same_pos=True) for _ in range(10)])
     while True:
         for player1 in player:
-            print(f"Playing {player1.name}")
+            print(f"Playing {player1.name}", end="\r")
             for player2 in player:
                 connect_four_game(player1, player2)
-        print("Training...")
+        print("All PLayers have played!")
         for player1 in player:
+            print(f"Training {player1.name}", end="\r")
             for trainer1 in trainer:
                 connect_four_game(player1, trainer1)
+                connect_four_game(trainer1, player1)
+        print("All PLayers have trained!")
         sorted_players = sorted(player, key=lambda x: x.win, reverse=True)
         sorted_players[0].first += 1
         sorted_players[1].second += 1
@@ -170,12 +206,21 @@ def connect_four_learning():
         connect_four_game(sorted_players[0], sorted_players[1], log=True)
         print(f"Rematch!")
         connect_four_game(sorted_players[1], sorted_players[0], log=True)
-        print("Press any key to continue...")
+        print("Press any key to continue...", end="\r")
         input()
-        print("Continuing...")
+        print("Continuing...", end="\r")
         player = sorted_players[:25]
         for idx, _ in enumerate(player):
             player[idx].win = 0
+        if save_file is not None:
+            print("Saving...", end="\r")
+            player_dicts = []
+            content = {}
+            for i in player:
+                player_dicts.append(i.return_json())
+            content["content"] = player_dicts
+            save_players(save_file, content)
+            print(f"Players saved to file {save_file}.json")
         player.extend([PlayerAiConnectFour([42, 20, 20, 15]) for _ in range(5)])
         player.extend(PlayerAiConnectFour([30, 20, 30, 10]) for _ in range(5))
         player.extend(PlayerAiConnectFour([25, 25, 25]) for _ in range(5))
@@ -193,28 +238,38 @@ def connect_four_learning():
         player.extend(player[6].recreate() for _ in range(2))
         player.extend(player[7].recreate() for _ in range(2))
         player.extend(player[8].recreate() for _ in range(2))
-        player.extend(PlayerRandomConnectFour() for _ in range(20))
+        for p in player[:10]:
+            np = p.recreate(change_layers=False)
+            for idx, layer in enumerate(np.net.layers):
+                for jdx, neuron in enumerate(layer.neurons):
+                    if neuron.cummulated_output == 0:
+                        if idx < len(np.net.layers) - 1:
+                            del np.net.layers[idx].neurons[jdx]
+                            np.net.layers[idx].number_of_pre_neurons -= 1
+                            for kdx, _ in enumerate(np.net.layers[idx + 1].neurons):
+                                np.net.layers[idx + 1].neurons[kdx].pre_neurons -= 1
+                                del np.net.layers[idx + 1].neurons[kdx].w[jdx]
+            np.win += 1
+            player.append(np)
+        for idx, _ in enumerate(player):
+            for jdx, _ in enumerate(player[idx].net.layers):
+                for kdx, _ in enumerate(player[idx].net.layers[jdx].neurons):
+                    player[idx].net.layers[jdx].neurons[kdx].cummulated_output = 0
+        player.extend(PlayerRandomConnectFour() for _ in range(5))
         print(f"There are now {len(player)}")
 
-
+   
 def test_reshape():
-    player1 = PlayerAiConnectFour([42, 20, 20, 15])
-    player2 = PlayerAiConnectFour([42, 20, 20, 15])
-    connect_four_game(player1=player1,player2=player2)
-    player1.net.recreate(change_layers=True,
-               neuron_learn_rate=0.5,
-               add_layer=[10],
-               change_neurons=True,
-               del_neurons=None,
-               add_neurons=[[1, 2, 4], [], [], []])
-    print(player1.net.connector_layout)
-    connect_four_game(player1=player1,player2=player2)
-    # player1.net.print_net()
+    player = PlayerAiConnectFour([20,30,10])
+    json = player.return_json()
+    player_new = PlayerAiConnectFour([0])
+    player_new.read_json(json)
+    compare_player(player, player_new)
+    
 
 
 def main():
-    # connect_four_game(PlayerTrainerConnectFour(fill_columns=True), PlayerTrainerConnectFour(repeat_random=True), True)
-    test_reshape()
+    connect_four_learning(read_file="player_new", save_file="player_new")
 
 
 if __name__ == '__main__':

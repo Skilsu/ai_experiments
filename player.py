@@ -38,6 +38,28 @@ class Player:
     def recreate(self):
         pass
 
+    def return_json(self):
+        return {"win": self.win,
+                "name": self.name,
+                "parent": self.parent,
+                "first": self.first,
+                "second": self.second,
+                "third": self.third,
+                "top_five": self.top_five,
+                "top_ten": self.top_ten,
+                "top_twenty": self.top_twenty
+                }
+    
+    def read_json(self, neuron_dict):
+        self.win = neuron_dict["win"]
+        self.name = neuron_dict["name"]
+        self.parent = neuron_dict["parent"]
+        self.first = neuron_dict["first"]
+        self.second = neuron_dict["second"]
+        self.third = neuron_dict["third"]
+        self.top_five = neuron_dict["top_five"]
+        self.top_ten = neuron_dict["top_ten"]
+        self.top_twenty = neuron_dict["top_twenty"]
 
 class PlayerAiTicTacToe(Player):
     def __init__(self, input_layout, layout):
@@ -141,7 +163,17 @@ class PlayerAiConnectFour(Player):
         player.names.append(player.name)
         return player
 
-
+    def return_json(self):
+        dict = super().return_json()
+        dict["net"] = self.net.return_json()
+        return dict
+    
+    def read_json(self, neuron_dict):
+        super().read_json(neuron_dict)
+        self.net = Net()
+        self.net.read_json(neuron_dict["net"])
+        
+        
 class PlayerRandom(Player):
     def __init__(self):
         super().__init__()
@@ -178,13 +210,25 @@ class PlayerRandomConnectFour(Player):
 
 
 class PlayerTrainerConnectFour(Player):
-    def __init__(self, repeat_random=False, fill_columns=False, fill_horizontal=False):
+    def __init__(self, 
+                 repeat_random=False, 
+                 fill_columns=False, 
+                 fill_horizontal=False, 
+                 react_same_pos=False):
         super().__init__()
         self.fill_horizontal = fill_horizontal
         self.fill_columns = fill_columns
         self.last_move = -1
         self.board = []
+        self.last_board = []
+        help_board = []
+        for _ in range(0, 7):
+            help_board.append(0)
+        for _ in range(0, 6):
+            self.last_board.append(help_board)
         self.repeat_random = repeat_random
+        self.react_same_pos = react_same_pos
+        
 
     def play(self, input_board, p1=True):
         self.board = self.rearranged_board(input_board)
@@ -222,7 +266,24 @@ class PlayerTrainerConnectFour(Player):
                         board[self.last_move] = res
                         break
         elif self.fill_horizontal:
-            pass
+            for i in self.board[5]:
+                pass
+        elif self.react_same_pos:
+            for idx, i in enumerate(self.board):
+                if idx == 0:
+                    pass
+                elif i != self.last_board[idx]:
+                    for jdx, j in enumerate(i):
+                        if j != self.last_board[idx][jdx]:
+                            if j != res:
+                                board[jdx] = res
+                                self.last_move = jdx
+                                self.last_board = self.board
+                                return board
+                elif idx == len(self.board) - 1:
+                    self.last_move = empty_position[random.randint(0, len(empty_position) - 1)]
+                    board[self.last_move] = res
+        self.last_board = self.board
         return board
 
     def rearranged_board(self, board):
